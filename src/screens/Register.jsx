@@ -79,13 +79,30 @@ const css = `
 `;
 
 const allTags = [
-  "音楽","カフェ","映画","読書","マンガ","アニメ","ゲーム","写真","スポーツ","料理",
-  "芸術鑑賞","イラスト","絵画","ダンス","筋トレ","登山","キャンプ","自転車",
-  "水泳","格闘技","スケボー","サーフィン","楽器","手芸・DIY","プログラミング",
-  "デザイン","映像制作","ファッション","インスタ","インテリア","植物","ペット",
-  "スキンケア","カラオケ","ライブ","フェス","お笑い","YouTube","語学","歴史",
-  "天文","将棋・チェス","資格勉強","バイク","鉄道","旅行","お酒","スイーツ",
-  "温泉","ドライブ","グルメ","雑貨集め",
+  // 音楽・エンタメ
+  "邦楽","洋楽","K-POP","ボカロ","クラシック","ジャズ","バンド","作曲",
+  "映画","海外ドラマ","アニメ","マンガ","ライトノベル","読書","お笑い","YouTube","Netflix","Podcast",
+  // ゲーム
+  "TVゲーム","スマホゲーム","ボードゲーム","eスポーツ","レトロゲーム",
+  // クリエイティブ
+  "写真","イラスト","絵画","デザイン","映像制作","プログラミング","手芸・DIY","作詞作曲","小説執筆",
+  // スポーツ・運動
+  "筋トレ","ランニング","ヨガ","サッカー","バスケ","テニス","バドミントン","卓球","野球","バレー",
+  "水泳","登山","ボルダリング","スケボー","サーフィン","スノボ","ダンス","格闘技","自転車",
+  // アウトドア・旅
+  "国内旅行","海外旅行","キャンプ","ドライブ","釣り","散歩","ドライブ","聖地巡礼",
+  // 食・暮らし
+  "料理","お菓子作り","カフェ巡り","食べ歩き","ラーメン","スイーツ","お酒","コーヒー","紅茶",
+  "インテリア","植物","ガーデニング","ペット","掃除・片付け",
+  // ファッション・美容
+  "ファッション","古着","スニーカー","コスメ","スキンケア","ネイル","ヘアアレンジ",
+  // 学び・カルチャー
+  "語学","資格勉強","歴史","心理学","哲学","経済","天文","科学","アート鑑賞","美術館",
+  "博物館","神社仏閣巡り","将棋・チェス","囲碁",
+  // サブカル・コレクション
+  "アイドル","声優","コスプレ","フィギュア","プラモデル","鉄道","バイク","車","雑貨集め","御朱印",
+  // SNS・ネット
+  "Instagram","TikTok","X（Twitter）","配信","ブログ",
 ];
 
 const axes = [
@@ -101,7 +118,8 @@ export default function Register({ navigate }) {
   const [grade, setGrade] = useState("1");
   const [mbti, setMbti] = useState([50, 50, 50, 50]);
   const [genderPref, setGenderPref] = useState("same");
-  const [relationValue, setRelationValue] = useState(2);
+  // 関係の深さは選ばせない（コンセプト上）。スコア計算用に固定値3を保持。
+  const [relationValue] = useState(3);
   const [tagState, setTagState] = useState({});
   const [freeInput, setFreeInput] = useState("");
   const [freeTags, setFreeTags] = useState([]);
@@ -193,10 +211,6 @@ export default function Register({ navigate }) {
             <span className="yo-axis-pct">{a.left} {100-mbti[i]}%</span>
           </div>
         ))}
-        <div className="yo-divider"/>
-        <div className="yo-mbti-label">求める関係値（1〜5）</div>
-        <input type="range" className="yo-range-input" style={{position:"relative",opacity:1,width:"100%",marginBottom:4,accentColor:"#2C2A28"}} min="1" max="5" value={relationValue} onChange={e=>setRelationValue(Number(e.target.value))}/>
-        <div style={{fontSize:11,color:"#9A9490",textAlign:"center"}}>{["","気軽な挨拶","ゆるい知り合い","たまに話す仲","友達","親友候補"][relationValue]}</div>
         <div style={{height:16}}/>
       </div>
       <div className="yo-footer">
