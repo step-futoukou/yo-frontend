@@ -112,7 +112,10 @@ export default function Home({ navigate }) {
             </dd>
           </dl>
 
-          <button type="button" className="primary" onClick={() => navigate('/review')}>
+          <button type="button" className="primary" onClick={() => navigate('meeting')}>
+            待ち合わせを決める
+          </button>
+          <button type="button" className="secondary" onClick={() => navigate('/review')}>
             会った後のレビューへ
           </button>
           <button type="button" className="secondary" onClick={handleSearch}>
