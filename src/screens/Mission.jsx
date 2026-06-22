@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getUserId, confirmMeeting, getNotifications } from "../api.js";
+import { getUserId, getMatch, confirmMeeting, getNotifications } from "../api.js";
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap');
@@ -100,6 +100,7 @@ export default function Mission({ navigate }) {
 
   const userId = getUserId();
   const meetingId = localStorage.getItem("yo_meeting_id");
+  const matchId = localStorage.getItem("yo_match_id");
 
   useEffect(() => {
     if (screen === "mission_reveal") {
@@ -114,7 +115,15 @@ export default function Mission({ navigate }) {
   const handleArrive = async () => {
     setArriving(true);
     try {
-      if (meetingId) await confirmMeeting(meetingId, "a");
+      if (meetingId) {
+        // 自分がこのマッチの user_a なら 'a'、user_b なら 'b'（side固定だと両者aで成立しない）
+        let side = "a";
+        try {
+          const match = await getMatch(matchId);
+          side = match.user_b_id === userId ? "b" : "a";
+        } catch (e) { /* 取得失敗時は 'a' にフォールバック */ }
+        await confirmMeeting(meetingId, side);
+      }
     } catch(e) { console.error(e); }
     setScreen("arrived");
     setArriving(false);

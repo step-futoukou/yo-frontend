@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getUserId, sendWishes, getProposal, confirmMeeting, sendReminder, getNotifications } from "../api.js";
+import { getUserId, getMatch, sendWishes, getProposal, confirmMeeting, sendReminder, getNotifications } from "../api.js";
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap');
@@ -65,9 +65,9 @@ const css = `
 `;
 
 const days = [
-  { label:"明日", slots:["午前中","昼","ティータイム","夕方〜"] },
-  { label:"明後日", slots:["午前中","昼","ティータイム","夕方〜"] },
-  { label:"3日後", slots:["1限","2限","3限","昼休み","4限","5限"] },
+  { label:"明日", slots:["午前中","昼","ティータイム","放課後","夕方〜"] },
+  { label:"明後日", slots:["午前中","昼","ティータイム","放課後","夕方〜"] },
+  { label:"3日後", slots:["1限","2限","3限","昼休み","4限","5限","放課後"] },
 ];
 const places = [
   { icon:"☕", label:"学食・カフェ" },
@@ -122,7 +122,13 @@ export default function Meeting({ navigate, matchData }) {
 
   const handleConfirm = async () => {
     try {
-      await confirmMeeting(meetingId, "a");
+      // 自分がこのマッチの user_a なら 'a'、user_b なら 'b' を確定する（side固定は両者aになり成立しない）
+      let side = "a";
+      try {
+        const match = await getMatch(matchId);
+        side = match.user_b_id === userId ? "b" : "a";
+      } catch (e) { /* 取得失敗時は 'a' にフォールバック */ }
+      await confirmMeeting(meetingId, side);
       setScreen("confirming");
       const iv = setInterval(async () => {
         const notifs = await getNotifications(userId);

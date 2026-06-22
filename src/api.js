@@ -34,6 +34,12 @@ export const getUser = (userId) => api('GET', `/users/${userId}`);
 // マッチング検索
 export const findMatch = (userId) => api('POST', '/matching/find', { user_id: userId });
 
+// 自分が関わるマッチ一覧（user_a / user_b どちらでも）
+export const getMatchingUser = (userId) => api('GET', `/matching/user/${userId}`);
+
+// マッチ1件取得（user_a_id / user_b_id を含む。確定の side 判定に使う）
+export const getMatch = (matchId) => api('GET', `/matching/${matchId}`);
+
 // マッチング応答
 export const respondMatch = (matchId, action) =>
   api('POST', `/matching/${matchId}/respond`, { action });

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getUserId, getUser, findMatch, getNotifications } from "../api.js";
+import { getUserId, getUser, findMatch, getMatchingUser, getNotifications } from "../api.js";
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap');
@@ -73,13 +73,40 @@ export default function Home({ navigate }) {
     setMatchState("searching");
     setError(null);
     try {
-      const result = await findMatch(userId);
-      if (result.match && result.candidates && result.candidates.length > 0) {
-        localStorage.setItem("yo_match_id", result.match.id);
+      // 方針A: 自分が関わる pending マッチが既にあれば「合流」する。
+      // （相手が先に findMatch して作ったマッチに乗る＝同じ match_id を共有して新規作成しない）
+      let match = null;
+      let partnerId = null;
+      let isRematch = false;
 
-        // 相手のプロフィール（学部・学年・共通点）を取得（現Home.jsxの接続ロジックを引き継ぎ）
-        const partnerId = result.candidates[0].user_id;
-        let otherUser = { faculty: result.candidates[0].faculty, grade: result.candidates[0].grade };
+      try {
+        const myMatches = await getMatchingUser(userId);
+        const incoming = (myMatches || []).find(
+          (m) => m.status === "pending" && (m.user_a_id === userId || m.user_b_id === userId)
+        );
+        if (incoming) {
+          match = incoming;
+          partnerId = incoming.user_a_id === userId ? incoming.user_b_id : incoming.user_a_id;
+        }
+      } catch (e) {
+        /* 取得失敗時は新規作成にフォールバック */
+      }
+
+      // 合流できる相手がいなければ、従来どおり新規にマッチを探す
+      if (!match) {
+        const result = await findMatch(userId);
+        if (result.match && result.candidates && result.candidates.length > 0) {
+          match = result.match;
+          partnerId = result.candidates[0].user_id;
+          isRematch = !!result.rematch;
+        }
+      }
+
+      if (match && partnerId) {
+        localStorage.setItem("yo_match_id", match.id);
+
+        // 相手のプロフィール（学部・学年・共通点）を取得
+        let otherUser = {};
         let common = [];
         try {
           const [me, partner] = await Promise.all([getUser(userId), getUser(partnerId)]);
@@ -87,10 +114,10 @@ export default function Home({ navigate }) {
           const myTagNames = new Set((me.tags || []).map((t) => t.name));
           common = (partner.tags || []).filter((t) => myTagNames.has(t.name)).map((t) => t.name);
         } catch (e) {
-          /* 取得失敗時は candidate の faculty/grade をフォールバック使用 */
+          /* プロフィール取得失敗は致命的でないので無視 */
         }
 
-        setMatchData({ ...result.match, rematch: result.rematch, other_user: otherUser, common });
+        setMatchData({ ...match, rematch: isRematch, other_user: otherUser, common });
         setMatchState("matched");
       } else {
         setTimeout(handleFindMatch, 10000);
@@ -145,6 +172,11 @@ export default function Home({ navigate }) {
                 <>
                   <button className="yo-match-btn" onClick={handleFindMatch}>マッチングを探す</button>
                   <div className="yo-match-note">同じ大学の顔見知りと出会えます</div>
+                  {localStorage.getItem("yo_match_id") && (
+                    <div className="yo-match-note" style={{cursor:"pointer",marginTop:12,textDecoration:"underline"}} onClick={()=>navigate("meeting")}>
+                      進行中の待ち合わせに戻る
+                    </div>
+                  )}
                   {error && <div className="yo-error">{error}</div>}
                 </>
               )}
