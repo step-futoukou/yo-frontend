@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getUserId, getMatch, sendWishes, getProposal, getMeetingStatus, confirmMeeting, sendReminder, getNotifications } from "../api.js";
+import { getUserId, getUser, getMatch, sendWishes, getProposal, getMeetingStatus, confirmMeeting, sendReminder, getNotifications } from "../api.js";
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap');
@@ -86,9 +86,28 @@ export default function Meeting({ navigate, matchData, initialScreen }) {
   const [meetingId, setMeetingId] = useState(localStorage.getItem("yo_meeting_id"));
   const [error, setError] = useState(null);
   const [sending, setSending] = useState(false);
+  const [commonTags, setCommonTags] = useState([]);
+  const [partnerInfo, setPartnerInfo] = useState(null);
 
   const userId = getUserId();
   const matchId = localStorage.getItem("yo_match_id");
+
+  // 相手プロフィール（学部・学年）と共通タグを backend から取得（match画面で表示）
+  useEffect(() => {
+    if (!matchId) return;
+    (async () => {
+      try {
+        const st = await getMeetingStatus(matchId);
+        setCommonTags(Array.isArray(st.common_tags) ? st.common_tags : []);
+        const partnerId = st.match.user_a_id === userId ? st.match.user_b_id : st.match.user_a_id;
+        try {
+          const p = await getUser(partnerId);
+          setPartnerInfo({ faculty: p.faculty, grade: p.grade });
+        } catch (e) { /* プロフィール取得失敗は無視 */ }
+      } catch (e) { /* status取得失敗は無視 */ }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const toggleSlot = (key) => setMySlots(prev => { const n = new Set(prev); n.has(key)?n.delete(key):n.add(key); return n; });
   const togglePlace = (i) => setMyPlaces(prev => { const n = new Set(prev); n.has(i)?n.delete(i):n.add(i); return n; });
@@ -191,13 +210,16 @@ export default function Meeting({ navigate, matchData, initialScreen }) {
         <div className="yo-info-card">
           <div className="yo-info-row">
             <span className="yo-info-key">相手</span>
-            <span className="yo-info-val">{matchData?.other_user?.faculty || "文学部"} · {matchData?.other_user?.grade || 2}年生</span>
+            <span className="yo-info-val">
+              {(partnerInfo?.faculty || matchData?.other_user?.faculty || "—")} · {(partnerInfo?.grade || matchData?.other_user?.grade || "—")}年生
+            </span>
           </div>
           <div className="yo-info-row">
             <span className="yo-info-key">共通点</span>
             <span className="yo-info-val">
-              <span className="yo-tag-inline">音楽</span>
-              <span className="yo-tag-inline">カフェ</span>
+              {commonTags.length > 0
+                ? commonTags.map((t) => <span key={t} className="yo-tag-inline">{t}</span>)
+                : <span style={{color:"#9A9490"}}>当日のお楽しみ</span>}
             </span>
           </div>
         </div>
