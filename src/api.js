@@ -31,6 +31,9 @@ export const registerUser = (data) => api('POST', '/users', data);
 // ユーザー取得
 export const getUser = (userId) => api('GET', `/users/${userId}`);
 
+// プロフィール更新（MBTI・タグ・性別設定）
+export const updateUser = (userId, data) => api('PUT', `/users/${userId}`, data);
+
 // マッチング検索
 export const findMatch = (userId) => api('POST', '/matching/find', { user_id: userId });
 

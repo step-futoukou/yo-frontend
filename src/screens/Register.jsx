@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { getDeviceId, getUserId, setUserId, registerUser } from "../api.js";
+import { useState, useEffect } from "react";
+import { getDeviceId, getUserId, setUserId, registerUser, getUser, updateUser } from "../api.js";
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap');
@@ -113,7 +113,9 @@ const axes = [
 ];
 
 export default function Register({ navigate }) {
-  const [step, setStep] = useState("launch");
+  // 登録済み（=編集）なら入力フォームから始める。新規は起動画面から。
+  const editing = !!getUserId();
+  const [step, setStep] = useState(editing ? "mbti" : "launch");
   const [faculty, setFaculty] = useState("");
   const [grade, setGrade] = useState("1");
   const [mbti, setMbti] = useState([50, 50, 50, 50]);
@@ -125,6 +127,31 @@ export default function Register({ navigate }) {
   const [freeTags, setFreeTags] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [saved, setSaved] = useState(false);
+
+  // 編集時: 現在のプロフィールを取得してフォームへプレフィル
+  useEffect(() => {
+    const uid = getUserId();
+    if (!uid) return;
+    (async () => {
+      try {
+        const u = await getUser(uid);
+        if (u.faculty) setFaculty(u.faculty);
+        if (u.grade) setGrade(String(u.grade));
+        setMbti([u.mbti_ei ?? 50, u.mbti_ns ?? 50, u.mbti_tf ?? 50, u.mbti_jp ?? 50]);
+        setGenderPref(u.gender_pref === "any" ? "any" : "same");
+        const ts = {};
+        const free = [];
+        for (const t of (u.tags || [])) {
+          if (allTags.includes(t.name)) ts[t.name] = t.type === "interest" ? 2 : 1;
+          else free.push(t.name);
+        }
+        setTagState(ts);
+        setFreeTags(free);
+      } catch (e) { /* 取得失敗時は空フォームのまま */ }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const toggleTag = (tag) => setTagState(prev => ({ ...prev, [tag]: ((prev[tag] || 0) + 1) % 3 }));
   const addFree = () => { const v = freeInput.trim(); if (!v || freeTags.includes(v)) return; setFreeTags(p => [...p, v]); setFreeInput(""); };
@@ -140,14 +167,25 @@ export default function Register({ navigate }) {
         ...Object.entries(tagState).filter(([,v])=>v===2).map(([name])=>({name,type:"interest"})),
         ...freeTags.map(name=>({name,type:"hobby"})),
       ];
-      const res = await registerUser({
-        device_id: getDeviceId(), faculty, grade: Number(grade),
-        mbti_ei: mbti[0], mbti_ns: mbti[1], mbti_tf: mbti[2], mbti_jp: mbti[3],
-        gender_pref: genderPref, relation_value: relationValue, tags,
-      });
-      setUserId(res.id);
-      navigate("home");
-    } catch(e) { setError("登録に失敗しました。もう一度お試しください"); }
+      if (editing) {
+        // プロフィール更新（PUT）。relation_value は送らない（内部固定値）。
+        await updateUser(getUserId(), {
+          faculty, grade: Number(grade),
+          mbti_ei: mbti[0], mbti_ns: mbti[1], mbti_tf: mbti[2], mbti_jp: mbti[3],
+          gender_pref: genderPref, tags,
+        });
+        setSaved(true);
+        setTimeout(() => { setSaved(false); navigate("home"); }, 1300);
+      } else {
+        const res = await registerUser({
+          device_id: getDeviceId(), faculty, grade: Number(grade),
+          mbti_ei: mbti[0], mbti_ns: mbti[1], mbti_tf: mbti[2], mbti_jp: mbti[3],
+          gender_pref: genderPref, relation_value: relationValue, tags,
+        });
+        setUserId(res.id);
+        navigate("home");
+      }
+    } catch(e) { setError(editing ? "保存に失敗しました。もう一度お試しください" : "登録に失敗しました。もう一度お試しください"); }
     setSubmitting(false);
   };
 
@@ -225,6 +263,11 @@ export default function Register({ navigate }) {
     <><style>{css}</style>
     <div className="yo-root"><div className="yo-phone">
       <Bg/>
+      {saved && (
+        <div style={{position:"absolute",top:60,left:"50%",transform:"translateX(-50%)",background:"#2C2A28",color:"#FDFCFA",padding:"10px 20px",borderRadius:100,fontSize:13,zIndex:20,boxShadow:"0 6px 20px rgba(0,0,0,0.15)"}}>
+          ✓ 保存しました
+        </div>
+      )}
       <div className="yo-status">● ● ●</div>
       <div className="yo-hobbies-body">
         <div className="yo-step-dots">
@@ -267,8 +310,8 @@ export default function Register({ navigate }) {
         <div style={{height:16}}/>
       </div>
       <div className="yo-footer">
-        <button className="yo-btn-p" disabled={submitting} onClick={handleSubmit}>{submitting?"登録中...":"はじめる"}</button>
-        <button className="yo-btn-ghost" onClick={()=>setStep("mbti")}>もどる</button>
+        <button className="yo-btn-p" disabled={submitting} onClick={handleSubmit}>{submitting ? (editing ? "保存中..." : "登録中...") : (editing ? "保存する" : "はじめる")}</button>
+        <button className="yo-btn-ghost" onClick={()=>(editing ? navigate("home") : setStep("mbti"))}>{editing ? "キャンセル" : "もどる"}</button>
       </div>
     </div></div></>
   );
