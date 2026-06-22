@@ -61,7 +61,7 @@ const css = `
   .yo-error { font-size:12px; color:#C0544A; text-align:center; margin-top:8px; }
 `;
 
-export default function Home({ navigate }) {
+export default function Home({ navigate, resumeFlow }) {
   const [tab, setTab] = useState("home");
   const [matchState, setMatchState] = useState("idle");
   const [matchData, setMatchData] = useState(null);
@@ -173,7 +173,7 @@ export default function Home({ navigate }) {
                   <button className="yo-match-btn" onClick={handleFindMatch}>マッチングを探す</button>
                   <div className="yo-match-note">同じ大学の顔見知りと出会えます</div>
                   {localStorage.getItem("yo_match_id") && (
-                    <div className="yo-match-note" style={{cursor:"pointer",marginTop:12,textDecoration:"underline"}} onClick={()=>navigate("meeting")}>
+                    <div className="yo-match-note" style={{cursor:"pointer",marginTop:12,textDecoration:"underline"}} onClick={()=>(resumeFlow ? resumeFlow() : navigate("meeting"))}>
                       進行中の待ち合わせに戻る
                     </div>
                   )}

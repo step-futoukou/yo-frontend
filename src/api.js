@@ -51,9 +51,16 @@ export const sendWishes = (matchId, userId, timeSlots, places) =>
 // 自動提案取得
 export const getProposal = (matchId) => api('GET', `/meetings/${matchId}/proposal`);
 
+// 進行状態のまとめ取得（画面復元用）
+export const getMeetingStatus = (matchId) => api('GET', `/meetings/${matchId}/status`);
+
 // 待ち合わせ確定
 export const confirmMeeting = (meetingId, side) =>
   api('POST', `/meetings/${meetingId}/confirm`, { side });
+
+// 当日の到着を記録
+export const arriveMeeting = (meetingId, side) =>
+  api('POST', `/meetings/${meetingId}/arrive`, { side });
 
 // レビュー投稿
 export const postReview = (data) => api('POST', '/reviews', data);

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getUserId, getMatch, sendWishes, getProposal, confirmMeeting, sendReminder, getNotifications } from "../api.js";
+import { getUserId, getMatch, sendWishes, getProposal, getMeetingStatus, confirmMeeting, sendReminder, getNotifications } from "../api.js";
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap');
@@ -78,8 +78,8 @@ const places = [
   { icon:"📖", label:"講義棟ロビー" },
 ];
 
-export default function Meeting({ navigate, matchData }) {
-  const [screen, setScreen] = useState("match");
+export default function Meeting({ navigate, matchData, initialScreen }) {
+  const [screen, setScreen] = useState(initialScreen || "match");
   const [mySlots, setMySlots] = useState(new Set());
   const [myPlaces, setMyPlaces] = useState(new Set());
   const [proposal, setProposal] = useState(null);
@@ -120,6 +120,19 @@ export default function Meeting({ navigate, matchData }) {
     return () => clearInterval(iv);
   };
 
+  // 両者合意（confirmed_a && confirmed_b）になったら done へ。状態ベースで監視（復元でも使える）。
+  const startConfirmPolling = () => {
+    const iv = setInterval(async () => {
+      try {
+        const st = await getMeetingStatus(matchId);
+        if (st.meeting && st.meeting.confirmed_a === 1 && st.meeting.confirmed_b === 1) {
+          setScreen("done"); clearInterval(iv);
+        }
+      } catch(e) {}
+    }, 10000);
+    return () => clearInterval(iv);
+  };
+
   const handleConfirm = async () => {
     try {
       // 自分がこのマッチの user_a なら 'a'、user_b なら 'b' を確定する（side固定は両者aになり成立しない）
@@ -130,12 +143,30 @@ export default function Meeting({ navigate, matchData }) {
       } catch (e) { /* 取得失敗時は 'a' にフォールバック */ }
       await confirmMeeting(meetingId, side);
       setScreen("confirming");
-      const iv = setInterval(async () => {
-        const notifs = await getNotifications(userId);
-        if (notifs.some(n => n.type === "confirmation")) { setScreen("done"); clearInterval(iv); }
-      }, 10000);
+      startConfirmPolling();
     } catch(e) { setError("確定に失敗しました"); }
   };
+
+  // 復元（initialScreen）で waiting/propose/confirming に直接入った場合、
+  // 必要なポーリング/提案取得をマウント時に立ち上げる。
+  useEffect(() => {
+    if (!initialScreen) return undefined;
+    if (initialScreen === "waiting") return startPolling();
+    if (initialScreen === "confirming") return startConfirmPolling();
+    if (initialScreen === "propose") {
+      (async () => {
+        try {
+          const p = await getProposal(matchId);
+          if (p.status === "proposed") {
+            setProposal(p); setMeetingId(p.meeting_id);
+            localStorage.setItem("yo_meeting_id", p.meeting_id);
+          }
+        } catch(e) {}
+      })();
+    }
+    return undefined;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const Bg = () => (
     <>

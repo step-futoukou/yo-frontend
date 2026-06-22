@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getUserId, getMatch, confirmMeeting, getNotifications } from "../api.js";
+import { getUserId, getMatch, arriveMeeting } from "../api.js";
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap');
@@ -85,8 +85,8 @@ const missionPool = [
   { text:"最近ぼーっと考えていたことを話す", stars:"★", type:"話題ガチャ" },
 ];
 
-export default function Mission({ navigate }) {
-  const [screen, setScreen] = useState("pre_arrival");
+export default function Mission({ navigate, initialScreen }) {
+  const [screen, setScreen] = useState(initialScreen || "pre_arrival");
   const [msgText, setMsgText] = useState("");
   const [msgSent, setMsgSent] = useState(false);
   const [modal, setModal] = useState(null);
@@ -122,7 +122,7 @@ export default function Mission({ navigate }) {
           const match = await getMatch(matchId);
           side = match.user_b_id === userId ? "b" : "a";
         } catch (e) { /* 取得失敗時は 'a' にフォールバック */ }
-        await confirmMeeting(meetingId, side);
+        await arriveMeeting(meetingId, side);
       }
     } catch(e) { console.error(e); }
     setScreen("arrived");
