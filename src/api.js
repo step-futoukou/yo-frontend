@@ -1,4 +1,8 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+// APIのベースURL。本番は Render の環境変数 VITE_API_BASE_URL で注入する（コードに直書きしない）。
+// 開発時は未設定なら http://localhost:3000 にフォールバックする。
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+// バックエンドのルートは /api 配下にマウントされているため付与する。
+const BASE_URL = `${API_BASE_URL}/api`;
 
 // 端末固有IDを生成・保存（localStorage使用）
 export const getDeviceId = () => {

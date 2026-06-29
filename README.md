@@ -39,19 +39,47 @@ node server.js
 ## API共通ファイル
 
 src/api.js にすべてのAPI呼び出し関数をまとめています。
-バックエンドのURLは BASE_URL で管理しています。
-
-本番環境では .env ファイルを作成してください：
-
-```
-VITE_API_URL=https://your-backend-url.com/api
-```
-
-api.js の BASE_URL は以下のように環境変数対応になっています：
+バックエンドのURLは環境変数 `VITE_API_BASE_URL` で管理します（コードに直書きしない）。
 
 ```js
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+// /api は api.js が自動付与する。VITE_API_BASE_URL には /api を含めない。
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+const BASE_URL = `${API_BASE_URL}/api`;
 ```
+
+- 開発時: 未設定なら `http://localhost:3000` にフォールバック（設定不要）。
+- ローカルで上書きしたい場合は `.env.example` をコピーして `.env` を作成。
+  `.env` は Git 管理外（`.gitignore` 済み）。
+
+```bash
+cp .env.example .env
+```
+
+## ビルド
+
+```bash
+npm run build      # dist/ に静的ファイルを生成
+npm run preview    # 生成物をローカル確認
+```
+
+## Render へのデプロイ（Static Site）
+
+フロントは Render の **Static Site** としてデプロイします（APIは別リポジトリの Web Service）。
+
+1. 先に `yo-backend` を Web Service としてデプロイし、公開URL（例 `https://yo-backend.onrender.com`）を控える。
+2. Render で **New + → Static Site** を選び、`yo-frontend` リポジトリを接続。
+3. 設定:
+   - **Build Command**: `npm install && npm run build`
+   - **Publish Directory**: `dist`
+4. **Environment Variables** に以下を設定（`/api` は付けない）:
+
+   | Key | Value（例） |
+   |---|---|
+   | `VITE_API_BASE_URL` | `https://yo-backend.onrender.com` |
+
+   > Vite の環境変数はビルド時に埋め込まれる。変更したら再デプロイが必要。
+5. デプロイ後の公開URL（例 `https://yo-frontend.onrender.com`）を、
+   バックエンドの `CORS_ORIGIN` に設定して再デプロイする。
 
 ## フォルダ構成
 
@@ -73,4 +101,4 @@ src/
 - [ ] React Native への移行
 - [ ] Firebase FCM によるプッシュ通知
 - [ ] プロフィール編集画面の接続
-- [ ] デプロイ（Vercel / Netlify 推奨）
+- [x] デプロイ（Render Static Site）
